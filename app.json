@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "Centella App",
+    "slug": "centella-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/clean-logo.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/clean-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.centella.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/clean-logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.centella.app",
+      "edgeToEdgeEnabled": true,
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-notifications",
+      "expo-video",
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": false
+          }
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "fb0ff2ce-b618-4a4f-837a-f8536a5c2d90"
+      }
+    },
+    "owner": "potatococonut",
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#231828",
+      "androidMode": "default",
+      "androidCollapsedTitle": "#{unread_notifications} new notifications"
+    }
+  }
+}

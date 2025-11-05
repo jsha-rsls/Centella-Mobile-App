@@ -1,0 +1,29 @@
+screens/Reservation/Payment/
+├── Payment.js                    # Main screen component (orchestrator)
+├── PaymentStyles.js              # Main styles export
+│
+├── components/                   # UI Components
+│   ├── PaymentHeader.js         # Header with back button
+│   ├── BookingSummary.js        # Collapsible booking details
+│   ├── PaymentMethodSelector.js # Payment method cards
+│   ├── PaymentTimeline.js       # What happens next timeline
+│   ├── PaymentTerms.js          # Important notes section
+│   ├── PaymentButton.js         # Fixed bottom payment button
+│   └── PaymentModals.js         # All modals (info, confirm, success)
+│
+├── hooks/                        # Custom React Hooks
+│   ├── usePaymentData.js        # Processes booking data
+│   ├── usePaymentModals.js      # Handles payment logic & state
+│   └── usePaymentAnimation.js   # Success animation logic
+│
+├── styles/                       # Separated Style Files
+│   ├── HeaderStyles.js          # Header component styles
+│   ├── SummaryStyles.js         # Summary card styles
+│   ├── MethodStyles.js          # Payment method styles
+│   ├── TimelineStyles.js        # Timeline component styles
+│   ├── TermsStyles.js           # Terms section styles
+│   ├── ButtonStyles.js          # Payment button styles
+│   └── ModalStyles.js           # All modal styles
+│
+└── utils/                        # Utility Functions
+    └── PaymentUtils.js          # Date/time/price formatting (existing)

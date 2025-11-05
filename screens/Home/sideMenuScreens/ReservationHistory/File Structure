@@ -1,0 +1,17 @@
+ReservationHistory/
+├── ReservationHistory.js       # Main screen (orchestrator)
+├── components/                 # 8 UI components
+│   ├── Header.js
+│   ├── TabSelector.js
+│   ├── StatsCards.js
+│   ├── ReservationItem.js
+│   ├── ReservationsList.js
+│   ├── EmptyState.js
+│   ├── LoadingState.js
+│   └── ErrorState.js
+├── hooks/
+│   └── useReservations.js      # Data fetching logic
+├── utils/
+│   └── reservationHelpers.js   # Helper functions
+└── styles/
+    └── index.js                # Centralized styles

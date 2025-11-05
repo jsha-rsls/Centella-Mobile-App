@@ -1,0 +1,110 @@
+import { StyleSheet } from "react-native"
+
+const styles = StyleSheet.create({
+  headerContainer: {
+    paddingBottom: 12,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  stepTitle: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#1a1a1a",
+    fontWeight: "700",
+    marginBottom: 8,
+    marginTop: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.08)',
+    textShadowOffset: {width: 0, height: 1},
+    textShadowRadius: 1,
+  },
+  stepsContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  stepWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  stepCircleContainer: {
+    position: 'relative',
+    width: 32,
+    height: 32,
+  },
+  stepCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#f3f0f4",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(45, 27, 46, 0.2)",
+  },
+  stepCircleActive: {
+    backgroundColor: "#2d1b2e",
+    borderColor: "#2d1b2e",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  stepCircleCompleted: {
+    backgroundColor: "white",
+    borderColor: "#2d1b2e",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  stepCircleHalfCompleted: {
+    backgroundColor: "#f3f0f4",
+    borderColor: "#2d1b2e",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  halfFillOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  halfFillLeft: {
+    width: '50%',
+    height: '100%',
+    backgroundColor: "#2d1b2e",
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
+  },
+  stepNumber: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#2d1b2e",
+    zIndex: 2,
+  },
+  stepNumberActive: {
+    color: "white",
+    zIndex: 2,
+  },
+  stepLine: {
+    width: 42,
+    height: 2,
+    backgroundColor: "rgba(45, 27, 46, 0.2)",
+    marginHorizontal: 8,
+    borderRadius: 1,
+  },
+  stepLineCompleted: {
+    backgroundColor: "#2d1b2e",
+  },
+})
+
+export default styles

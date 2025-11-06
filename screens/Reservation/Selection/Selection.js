@@ -2,7 +2,7 @@ import { useState, useEffect, useContext, useCallback } from "react"
 import { View, ScrollView, Alert, KeyboardAvoidingView, Platform, BackHandler } from "react-native"
 import { StatusBar as ExpoStatusBar } from "expo-status-bar"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { useFocusEffect } from "@react-navigation/native"
+import { useFocusEffect, CommonActions } from "@react-navigation/native"
 import { styles } from "./styles/SelectionStyles"
 import FacilityPicker, { FacilityPickerHeader } from "./components/FacilityPicker"
 
@@ -15,7 +15,6 @@ import NavigationButtons from "./components/NavigationButtons"
 import { useSelectionState } from "./hooks/useSelectionState"
 import { useSelectionHandlers } from "./hooks/useSelectionHandlers"
 import SelectionSkeleton from './components/SelectionSkeleton'
-
 
 // Context
 import { SelectionContext } from "../../../navigation/SelectionContext"
@@ -150,74 +149,99 @@ export default function Selection({ navigation, route }) {
     return () => backHandler.remove()
   }, [hasSelections])
 
+  // ✅ Fixed: Safe navigation handler that checks if we can go back
   const handleConfirmBackNavigation = () => {
     setShowBackModal(false)
     resetAllState()
     setHasSelections(false)
-    navigation.goBack()
+    
+    // Check if we can go back in the navigation stack
+    const canGoBack = navigation.canGoBack()
+    
+    if (canGoBack) {
+      navigation.goBack()
+    } else {
+      // If we can't go back, navigate to Home tab explicitly
+      navigation.navigate('Home')
+    }
   }
 
   const handleCancelBackNavigation = () => {
     setShowBackModal(false)
   }
 
-const handleProceedToPaymentScreen = () => {
-  // Validate all selections
-  if (!selectedFacility || !selectedDate || !selectedTimeSlot) {
-    Alert.alert("Incomplete Information", "Please complete all required information")
-    return
-  }
-  
-  if (selectedPurposes.length === 0 && !customPurpose.trim()) {
-    Alert.alert("Event Required", "Please specify the event for your reservation")
-    return
-  }
-
-  const facilityObject = facilities.find((f) => f.id === selectedFacility?.id)
-  
-  if (!facilityObject) {
-    Alert.alert("Error", "Please select a valid facility")
-    return
-  }
-
-  // Build purpose string
-  let purpose = ""
-  const filteredPurposes = selectedPurposes.filter(p => p !== "Other")
-  
-  if (filteredPurposes.length > 0) {
-    purpose = filteredPurposes.join(", ")
-    if (customPurpose.trim()) {
-      purpose += ", " + customPurpose.trim()
+  // ✅ Also update the cancel button handler to be safe
+  const handleCancelReservation = () => {
+    resetAllState()
+    setHasSelections(false)
+    
+    const canGoBack = navigation.canGoBack()
+    
+    if (canGoBack) {
+      navigation.goBack()
+    } else {
+      // Navigate to Home tab if we can't go back
+      navigation.navigate('Home')
     }
-  } else if (customPurpose.trim()) {
-    purpose = customPurpose.trim()
   }
 
-  // Split time slot into start and end times
-  const [startTime, endTime] = selectedTimeSlot.split(" - ")
+  const handleProceedToPaymentScreen = () => {
+    // Validate all selections
+    if (!selectedFacility || !selectedDate || !selectedTimeSlot) {
+      Alert.alert("Incomplete Information", "Please complete all required information")
+      return
+    }
+    
+    if (selectedPurposes.length === 0 && !customPurpose.trim()) {
+      Alert.alert("Event Required", "Please specify the event for your reservation")
+      return
+    }
 
-  // ✅ Prepare booking data for Payment screen
-  const bookingData = {
-    reservation_date: selectedDate,
-    start_time: startTime,
-    end_time: endTime,
-    purpose: purpose,
+    const facilityObject = facilities.find((f) => f.id === selectedFacility?.id)
+    
+    if (!facilityObject) {
+      Alert.alert("Error", "Please select a valid facility")
+      return
+    }
+
+    // Build purpose string
+    let purpose = ""
+    const filteredPurposes = selectedPurposes.filter(p => p !== "Other")
+    
+    if (filteredPurposes.length > 0) {
+      purpose = filteredPurposes.join(", ")
+      if (customPurpose.trim()) {
+        purpose += ", " + customPurpose.trim()
+      }
+    } else if (customPurpose.trim()) {
+      purpose = customPurpose.trim()
+    }
+
+    // Split time slot into start and end times
+    const [startTime, endTime] = selectedTimeSlot.split(" - ")
+
+    // Prepare booking data for Payment screen
+    const bookingData = {
+      reservation_date: selectedDate,
+      start_time: startTime,
+      end_time: endTime,
+      purpose: purpose,
+    }
+
+    // Pass facilityData separately (this is what Payment.js expects)
+    const facilityData = {
+      id: facilityObject.id,
+      name: facilityObject.name,
+      price: facilityObject.price,
+      price_unit: facilityObject.price_unit || 'per hour',
+    }
+
+    // Navigate to Payment screen with both bookingData and facilityData
+    navigation.navigate("Payment", { 
+      bookingData, 
+      facilityData 
+    })
   }
-
-  // ✅ Pass facilityData separately (this is what Payment.js expects)
-  const facilityData = {
-    id: facilityObject.id,
-    name: facilityObject.name,
-    price: facilityObject.price,
-    price_unit: facilityObject.price_unit || 'per hour',
-  }
-
-  // Navigate to Payment screen with both bookingData and facilityData
-  navigation.navigate("Payment", { 
-    bookingData, 
-    facilityData 
-  })
-}
 
   const handleNextStep = () => {
     if (currentStep === 1 && !selectedFacility) {
@@ -292,24 +316,24 @@ const handleProceedToPaymentScreen = () => {
     return 'inactive'
   }
 
-if (loading) {
-  return (
-    <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
-      <ExpoStatusBar style="auto" />
-      
-      {/* Show StepIndicator during loading */}
-      <StepIndicator 
-        currentStep={currentStep} 
-        currentSubstep={currentSubstep}
-        totalSteps={totalSteps}
-        getStepStatus={getStepStatus}
-      />
-      
-      {/* Show Skeleton loading */}
-      <SelectionSkeleton />
-    </SafeAreaView>
-  )
-}
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
+        <ExpoStatusBar style="auto" />
+        
+        {/* Show StepIndicator during loading */}
+        <StepIndicator 
+          currentStep={currentStep} 
+          currentSubstep={currentSubstep}
+          totalSteps={totalSteps}
+          getStepStatus={getStepStatus}
+        />
+        
+        {/* Show Skeleton loading */}
+        <SelectionSkeleton />
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right', 'bottom']}>
@@ -424,17 +448,17 @@ if (loading) {
         </KeyboardAvoidingView>
       </View>
 
-<NavigationButtons
-  currentStep={currentStep}
-  currentSubstep={currentSubstep}
-  totalSteps={totalSteps}
-  canProceedFromCurrentStep={canProceedFromCurrentStep()}
-  creating={creating}
-  onNextStep={handleNextStep}
-  onPrevStep={handlePrevStep}
-  onCancel={() => navigation.goBack()}
-  onCreateReservation={handleProceedToPaymentScreen}  // ✅ Changed this
-/>
+      <NavigationButtons
+        currentStep={currentStep}
+        currentSubstep={currentSubstep}
+        totalSteps={totalSteps}
+        canProceedFromCurrentStep={canProceedFromCurrentStep()}
+        creating={creating}
+        onNextStep={handleNextStep}
+        onPrevStep={handlePrevStep}
+        onCancel={handleCancelReservation}  // ✅ Use the safe handler
+        onCreateReservation={handleProceedToPaymentScreen}
+      />
 
       <ModalComponent />
 

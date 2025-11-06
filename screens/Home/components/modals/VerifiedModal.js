@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo, memo } from 'react'
+import React, { useEffect, useRef, memo } from 'react'
 import {
   Modal,
   View,
@@ -8,73 +8,100 @@ import {
   Dimensions,
   StatusBar,
   Animated,
+  ScrollView,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { BlurView } from 'expo-blur'
 
-const { width: screenWidth } = Dimensions.get('window')
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
 
-// Memoized feature items to prevent unnecessary re-renders
-const FeatureItem = memo(({ icon, text }) => (
-  <View style={styles.featureItem}>
-    <Ionicons name={icon} size={18} color="#22c55e" />
-    <Text style={styles.featureText}>{text}</Text>
-  </View>
-))
+// Animated confetti particles that fall from top
+const ConfettiParticle = memo(({ delay, left, emoji = '🎉' }) => {
+  const animValue = useRef(new Animated.Value(0)).current
+  
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.timing(animValue, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start()
+  }, [delay])
+  
+  const translateY = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-20, screenHeight],
+  })
+  
+  const opacity = animValue.interpolate({
+    inputRange: [0, 0.1, 0.9, 1],
+    outputRange: [0, 1, 1, 0],
+  })
+  
+  const rotate = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  })
+  
+  return (
+    <Animated.View
+      style={[
+        styles.confettiParticle,
+        {
+          left: `${left}%`,
+          transform: [{ translateY }, { rotate }],
+          opacity,
+        },
+      ]}
+    >
+      <Text style={styles.confettiEmoji}>{emoji}</Text>
+    </Animated.View>
+  )
+})
+
+ConfettiParticle.displayName = 'ConfettiParticle'
+
+// Feature item with stagger animation
+const FeatureItem = memo(({ icon, text, delay }) => {
+  const slideAnim = useRef(new Animated.Value(0)).current
+  
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: 1,
+      duration: 400,
+      delay,
+      useNativeDriver: true,
+    }).start()
+  }, [delay])
+  
+  const translateX = slideAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-15, 0],
+  })
+  
+  return (
+    <Animated.View
+      style={[
+        styles.featureItem,
+        {
+          opacity: slideAnim,
+          transform: [{ translateX }],
+        },
+      ]}
+    >
+      <View style={styles.featureIconContainer}>
+        <Ionicons name={icon} size={18} color="#22c55e" />
+      </View>
+      <Text style={styles.featureText}>{text}</Text>
+    </Animated.View>
+  )
+})
 
 FeatureItem.displayName = 'FeatureItem'
-
-// Memoized success card section
-const SuccessCard = memo(() => (
-  <View style={styles.successCard}>
-    <View style={styles.successHeader}>
-      <View style={styles.successDot} />
-      <Text style={styles.successTitle}>Account Status Updated</Text>
-    </View>
-    <Text style={styles.successText}>Verified Homeowner ✓</Text>
-    <Text style={styles.successSubtext}>
-      You now have full access to all Centella features.
-    </Text>
-  </View>
-))
-
-SuccessCard.displayName = 'SuccessCard'
-
-// Memoized confetti section
-const ConfettiSection = memo(() => (
-  <View style={styles.confettiContainer}>
-    <Text style={styles.confetti}>🎉</Text>
-    <Text style={[styles.confetti, styles.confettiRight]}>🎉</Text>
-  </View>
-))
-
-ConfettiSection.displayName = 'ConfettiSection'
-
-// Memoized features box
-const FeaturesBox = memo(() => (
-  <View style={styles.featuresBox}>
-    <Text style={styles.featuresTitle}>What's New:</Text>
-    <FeatureItem icon="calendar" text="Book facility reservations" />
-    <FeatureItem icon="people" text="Access community amenities" />
-    <FeatureItem icon="star" text="Full homeowner privileges" />
-  </View>
-))
-
-FeaturesBox.displayName = 'FeaturesBox'
-
-// Memoized button section
-const ActionButton = memo(({ onPress }) => (
-  <TouchableOpacity
-    style={styles.button}
-    onPress={onPress}
-    activeOpacity={0.8}
-  >
-    <Text style={styles.buttonText}>Start Exploring</Text>
-    <Ionicons name="arrow-forward" size={20} color="#ffffff" />
-  </TouchableOpacity>
-))
-
-ActionButton.displayName = 'ActionButton'
 
 export default function VerifiedModal({ 
   visible, 
@@ -83,53 +110,70 @@ export default function VerifiedModal({
 }) {
   const scaleAnim = useRef(new Animated.Value(0)).current
   const checkmarkAnim = useRef(new Animated.Value(0)).current
-
-  // ✅ FIXED: Proper rotation interpolation with string output including 'deg'
-  const animationInterpolations = useMemo(() => ({
-    modalScale: scaleAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.8, 1],
-    }),
-    checkmarkScale: checkmarkAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, 1],
-    }),
-    // Return string with 'deg' directly from interpolate
-    checkmarkRotate: checkmarkAnim.interpolate({
-      inputRange: [0, 1],
-      outputRange: ['-45deg', '0deg'],  // ✅ Strings with 'deg' included
-    }),
-  }), [scaleAnim, checkmarkAnim])
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(30)).current
 
   useEffect(() => {
     if (visible) {
-      // Reset animations
+      // Reset all animations
       scaleAnim.setValue(0)
       checkmarkAnim.setValue(0)
+      fadeAnim.setValue(0)
+      slideAnim.setValue(30)
 
-      // Sequence animations with native driver
-      Animated.sequence([
+      // Orchestrated animation sequence
+      Animated.parallel([
         Animated.spring(scaleAnim, {
           toValue: 1,
           tension: 50,
           friction: 7,
           useNativeDriver: true,
         }),
-        Animated.spring(checkmarkAnim, {
-          toValue: 1,
-          tension: 40,
-          friction: 6,
-          useNativeDriver: true,
-          delay: 200,
-        }),
+        Animated.sequence([
+          Animated.delay(150),
+          Animated.spring(checkmarkAnim, {
+            toValue: 1,
+            tension: 45,
+            friction: 6,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.delay(300),
+          Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.delay(300),
+          Animated.spring(slideAnim, {
+            toValue: 0,
+            tension: 45,
+            friction: 8,
+            useNativeDriver: true,
+          }),
+        ]),
       ]).start()
     }
-  }, [visible, scaleAnim, checkmarkAnim])
+  }, [visible, scaleAnim, checkmarkAnim, fadeAnim, slideAnim])
 
-  // Add error boundary protection
   if (!visible) {
     return null
   }
+
+  const checkmarkScale = checkmarkAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 1.15, 1],
+  })
+
+  const checkmarkRotate = checkmarkAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-180deg', '0deg'],
+  })
+
+  const confettiEmojis = ['🎉', '🎊', '✨', '⭐']
 
   return (
     <Modal
@@ -140,63 +184,106 @@ export default function VerifiedModal({
       statusBarTranslucent
     >
       <StatusBar
-        backgroundColor="rgba(0, 0, 0, 0.5)"
+        backgroundColor="rgba(0, 0, 0, 0.6)"
         barStyle="light-content"
         translucent
       />
       <View style={styles.overlay}>
-        <BlurView intensity={20} style={StyleSheet.absoluteFill}>
+        <BlurView intensity={25} style={StyleSheet.absoluteFill}>
+          {/* Animated confetti rain */}
+          {confettiEmojis.map((emoji, i) => (
+            <ConfettiParticle
+              key={i}
+              delay={i * 250}
+              left={15 + i * 23}
+              emoji={emoji}
+            />
+          ))}
+          
           <View style={styles.modalContainer}>
             <Animated.View 
               style={[
                 styles.modalContent,
                 {
-                  transform: [{ scale: animationInterpolations.modalScale }],
+                  transform: [{ scale: scaleAnim }],
+                  opacity: scaleAnim,
                 }
               ]}
             >
-              {/* Animated Checkmark Icon - ✅ FIXED rotation */}
-              <Animated.View 
-                style={[
-                  styles.iconContainer,
-                  {
-                    transform: [
-                      { scale: animationInterpolations.checkmarkScale },
-                      { rotate: animationInterpolations.checkmarkRotate }  // ✅ No concatenation needed
-                    ],
-                  }
-                ]}
+              <ScrollView 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.scrollContent}
+                bounces={false}
               >
-                <Ionicons name="checkmark-circle" size={64} color="#22c55e" />
-              </Animated.View>
+                {/* Animated checkmark with glow */}
+                <Animated.View 
+                  style={[
+                    styles.iconContainer,
+                    {
+                      transform: [
+                        { scale: checkmarkScale },
+                        { rotate: checkmarkRotate }
+                      ],
+                    }
+                  ]}
+                >
+                  <View style={styles.glowCircle} />
+                  <Ionicons name="checkmark-circle" size={64} color="#22c55e" />
+                </Animated.View>
 
-              {/* Confetti/Celebration effect */}
-              <ConfettiSection />
+                {/* Main content */}
+                <Animated.View
+                  style={{
+                    opacity: fadeAnim,
+                    transform: [{ translateY: slideAnim }],
+                  }}
+                >
+                  <Text style={styles.title}>Congratulations!</Text>
+                  <Text style={styles.userName}>{userName}</Text>
+                  <Text style={styles.subtitle}>You're Now a Verified Homeowner</Text>
 
-              {/* Title */}
-              <Text style={styles.title}>Congratulations, {userName}! 🎊</Text>
+                  {/* Status card */}
+                  <View style={styles.statusCard}>
+                    <View style={styles.statusHeader}>
+                      <View style={styles.statusDot} />
+                      <Text style={styles.statusTitle}>ACCOUNT VERIFIED</Text>
+                    </View>
+                    <Text style={styles.statusText}>
+                      Your residency verification is complete
+                    </Text>
+                  </View>
 
-              {/* Subtitle */}
-              <Text style={styles.subtitle}>You're Now Verified!</Text>
+                  {/* Features */}
+                  <View style={styles.featuresSection}>
+                    <Text style={styles.featuresTitle}>✨ What You Can Do Now</Text>
+                    <FeatureItem 
+                      icon="calendar-outline" 
+                      text="Reserve Facilities" 
+                      delay={500}
+                    />
+                  </View>
 
-              {/* Message */}
-              <Text style={styles.message}>
-                Your account has been successfully verified by the HOA administrators.
-              </Text>
+                  {/* CTA button */}
+                  <TouchableOpacity
+                    style={styles.button}
+                    onPress={onDismiss}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.buttonText}>Start Exploring</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#ffffff" />
+                  </TouchableOpacity>
 
-              {/* Success Card */}
-              <SuccessCard />
-
-              {/* Features unlocked */}
-              <FeaturesBox />
-
-              {/* Button */}
-              <ActionButton onPress={onDismiss} />
-
-              {/* Footer note */}
-              <Text style={styles.footerText}>
-                You can now access the 'Reserve Tab' to book facilities!
-              </Text>
+                  {/* Footer */}
+                  <View style={styles.footer}>
+                    <View style={styles.footerIconContainer}>
+                      <Ionicons name="information-circle" size={16} color="#22c55e" />
+                    </View>
+                    <Text style={styles.footerText}>
+                      Head to the <Text style={styles.footerBold}>Reserve</Text> tab to book your first facility!
+                    </Text>
+                  </View>
+                </Animated.View>
+              </ScrollView>
             </Animated.View>
           </View>
         </BlurView>
@@ -209,151 +296,192 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
   },
   modalContent: {
-    width: Math.min(screenWidth - 40, 400),
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: screenHeight * 0.9,
     backgroundColor: '#ffffff',
     borderRadius: 24,
-    padding: 28,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 25,
-    elevation: 15,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 18,
+    overflow: 'hidden',
+  },
+  scrollContent: {
+    padding: 24,
+    paddingBottom: 20,
   },
   iconContainer: {
     alignSelf: 'center',
-    marginBottom: 8,
+    marginBottom: 20,
+    position: 'relative',
   },
-  confettiContainer: {
+  glowCircle: {
     position: 'absolute',
-    top: 20,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 30,
-  },
-  confetti: {
-    fontSize: 32,
-    opacity: 0.8,
-  },
-  confettiRight: {
-    transform: [{ scaleX: -1 }],
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#22c55e',
+    opacity: 0.18,
+    top: -8,
+    left: -8,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 23,
+    fontWeight: '800',
     color: '#1f2937',
+    textAlign: 'center',
+    marginBottom: 6,
+    letterSpacing: -0.3,
+  },
+  userName: {
+    fontSize: 19,
+    fontWeight: '600',
+    color: '#22c55e',
     textAlign: 'center',
     marginBottom: 6,
   },
   subtitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#22c55e',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  message: {
     fontSize: 15,
+    fontWeight: '500',
     color: '#6b7280',
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 20,
+    marginBottom: 18,
+    lineHeight: 21,
   },
-  successCard: {
+  statusCard: {
     backgroundColor: '#f0fdf4',
     borderRadius: 14,
-    padding: 18,
+    padding: 16,
     marginBottom: 18,
     borderWidth: 1.5,
     borderColor: '#86efac',
   },
-  successHeader: {
+  statusHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 6,
   },
-  successDot: {
+  statusDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: '#22c55e',
-    marginRight: 10,
+    marginRight: 8,
   },
-  successTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+  statusTitle: {
+    fontSize: 13,
+    fontWeight: '700',
     color: '#15803d',
+    letterSpacing: 0.5,
   },
-  successText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  statusText: {
+    fontSize: 13,
     color: '#166534',
-    marginBottom: 6,
+    lineHeight: 18,
+    fontWeight: '500',
   },
-  successSubtext: {
-    fontSize: 14,
-    color: '#15803d',
-    lineHeight: 20,
-  },
-  featuresBox: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
+  featuresSection: {
+    backgroundColor: '#fafafa',
+    borderRadius: 14,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#f3f4f6',
   },
   featuresTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#374151',
     marginBottom: 12,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+  },
+  featureIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#dcfce7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
   featureText: {
     fontSize: 14,
     color: '#4b5563',
-    marginLeft: 10,
     flex: 1,
+    fontWeight: '500',
+    lineHeight: 19,
   },
   button: {
     flexDirection: 'row',
     backgroundColor: '#22c55e',
     borderRadius: 14,
-    paddingVertical: 16,
+    paddingVertical: 15,
     paddingHorizontal: 24,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#22c55e',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
-    shadowRadius: 10,
+    shadowRadius: 12,
     elevation: 6,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   buttonText: {
     fontSize: 17,
     fontWeight: '700',
     color: '#ffffff',
     marginRight: 8,
+    letterSpacing: 0.3,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#86efac',
+  },
+  footerIconContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#dcfce7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+    flexShrink: 0,
   },
   footerText: {
     fontSize: 13,
-    color: '#9ca3af',
-    textAlign: 'center',
+    color: '#166534',
+    flex: 1,
     lineHeight: 18,
+    fontWeight: '500',
+  },
+  footerBold: {
+    fontWeight: '700',
+    color: '#15803d',
+  },
+  confettiParticle: {
+    position: 'absolute',
+    top: 0,
+  },
+  confettiEmoji: {
+    fontSize: 20,
   },
 })

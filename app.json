@@ -53,7 +53,7 @@
     },
     "owner": "potatococonut",
     "notification": {
-      "icon": "./assets/notification-icon.png",
+      "icon": "./assets/notification-icon96.png",
       "color": "#231828",
       "androidMode": "default",
       "androidCollapsedTitle": "#{unread_notifications} new notifications"

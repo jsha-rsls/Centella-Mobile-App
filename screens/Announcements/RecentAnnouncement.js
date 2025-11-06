@@ -140,81 +140,79 @@ export default function AnnouncementCard({
                   transform: [{ translateY: slideAnim }]
                 }}
               >
-                <TouchableOpacity 
-                  style={[
-                    styles.item,
-                    pressedItem === announcement.id && styles.itemPressed
-                  ]} 
-                  onPress={() => handleAnnouncementPress(announcement)}
-                  onPressIn={() => setPressedItem(announcement.id)}
-                  onPressOut={() => setPressedItem(null)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.itemContainer}>
-                    <View style={styles.itemHeader}>
-                      <HTMLRenderer
-                        html={truncatedTitle}
-                        style={styles.itemTitle}
-                        numberOfLines={2}
-                        ellipsizeMode="tail"
-                      />
-                    </View>
-                    
-                    {/* Badge positioned absolutely in top-right */}
-                    <View style={styles.badgeContainer}>
-                      <BadgeRenderer
-                        announcement={announcement}
-                        pulseAnim={badgeAnimations.getPulseAnim()}
-                        recentBadgeAnim={badgeAnimations.getRecentBadgeAnim()}
-                      />
-                    </View>
+              <TouchableOpacity 
+                style={[
+                  styles.item,
+                  pressedItem === announcement.id && styles.itemPressed
+                ]} 
+                onPress={() => handleAnnouncementPress(announcement)}
+                onPressIn={() => setPressedItem(announcement.id)}
+                onPressOut={() => setPressedItem(null)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.itemContainer}>
+                  <View style={styles.itemHeader}>
+                    <HTMLRenderer
+                      html={truncatedTitle}
+                      style={styles.itemTitle}
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                    />
                   </View>
-                  
-                  <HTMLRenderer
-                    html={announcement.content}
-                    style={styles.itemContent}
-                    numberOfLines={2}
-                    ellipsizeMode="tail"
-                  />
-                  
-                  <View style={styles.itemFooter}>
-                    <View style={styles.dateContainer}>
-                      {isVeryRecentAnnouncement(announcement.created_at) && (
-                        <Ionicons 
-                          name="time-outline" 
-                          size={14} 
-                          color="#3B82F6" 
-                          style={styles.clockIcon}
-                        />
-                      )}
-                      <Text 
-                        style={[
-                          styles.date,
-                          isVeryRecentAnnouncement(announcement.created_at) && styles.veryRecentDate
-                        ]}
-                      >
-                        {(() => {
-                          const dateInfo = formatEnhancedRelativeDate(announcement.created_at)
-                          return dateInfo.text
-                        })()}
-                      </Text>
-                    </View>
+                </View>
+                
+                <HTMLRenderer
+                  html={announcement.content}
+                  style={styles.itemContent}
+                  numberOfLines={2}
+                  ellipsizeMode="tail"
+                />
+                
+                <View style={styles.itemFooter}>
+                  <View style={styles.dateContainer}>
+                    {/* Badge beside time */}
+                    <BadgeRenderer
+                      announcement={announcement}
+                      pulseAnim={badgeAnimations.getPulseAnim()}
+                      recentBadgeAnim={badgeAnimations.getRecentBadgeAnim()}
+                    />
                     
-                    {viewingAnnouncement === announcement.id ? (
-                      <ActivityIndicator size="small" color="#231828" />
-                    ) : (
-                      <View style={styles.readMoreContainer}>
-                        <Text style={styles.readMore}>Read more</Text>
-                        <Ionicons 
-                          name="chevron-forward" 
-                          size={14} 
-                          color="#231828" 
-                          style={styles.readMoreArrow}
-                        />
-                      </View>
+                    {isVeryRecentAnnouncement(announcement.created_at) && (
+                      <Ionicons 
+                        name="time-outline" 
+                        size={14} 
+                        color="#3B82F6" 
+                        style={styles.clockIcon}
+                      />
                     )}
+                    <Text 
+                      style={[
+                        styles.date,
+                        isVeryRecentAnnouncement(announcement.created_at) && styles.veryRecentDate
+                      ]}
+                    >
+                      {(() => {
+                        const dateInfo = formatEnhancedRelativeDate(announcement.created_at)
+                        return dateInfo.text
+                      })()}
+                    </Text>
                   </View>
-                </TouchableOpacity>
+                  
+                  {viewingAnnouncement === announcement.id ? (
+                    <ActivityIndicator size="small" color="#231828" />
+                  ) : (
+                    <View style={styles.readMoreContainer}>
+                      <Text style={styles.readMore}>Read more</Text>
+                      <Ionicons 
+                        name="chevron-forward" 
+                        size={14} 
+                        color="#231828" 
+                        style={styles.readMoreArrow}
+                      />
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
               </Animated.View>
             )
           }) : (

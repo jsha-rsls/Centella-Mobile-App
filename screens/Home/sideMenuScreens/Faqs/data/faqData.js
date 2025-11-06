@@ -74,6 +74,11 @@ export const faqData = [
         id: 10,
         question: "Who can I contact for technical support?",
         answer: "For technical issues with the app, please contact the HOA office at hoa@centellahomes.com or call +63 2 1234 5678 during office hours."
+      },
+      {
+        id: 11,
+        question: "Where can I see my account id?",
+        answer: "Go to Profile > Click on your email address. Your Account ID will be displayed.\n\nTip: You can copy your Account ID/Email by long pressing on it."
       }
     ]
   }

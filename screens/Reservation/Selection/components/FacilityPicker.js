@@ -38,7 +38,7 @@ export default function FacilityPicker({
         ]}
         onPress={() => onFacilitySelect(facility)}
       >
-        <Text style={facilityPickerStyles.facilityPickerIcon}>
+        <Text style={[facilityPickerStyles.facilityPickerIcon, { opacity: selectedFacility?.id === facility.id ? 1 : 0.5 }]}>
           {facility.icon}
         </Text>
         <Text
@@ -46,6 +46,7 @@ export default function FacilityPicker({
             facilityPickerStyles.facilityPickerName,
             selectedFacility?.id === facility.id &&  // ✅ Compare IDs
               facilityPickerStyles.facilityNameSelected,
+            { opacity: selectedFacility?.id === facility.id ? 1 : 0.5 },
           ]}
         >
           {facility.name}
@@ -55,6 +56,7 @@ export default function FacilityPicker({
             facilityPickerStyles.facilityPickerPrice,
             selectedFacility?.id === facility.id &&
               facilityPickerStyles.facilityPriceSelected,
+            { opacity: selectedFacility?.id === facility.id ? 1 : 0.5 },
           ]}
         >
           ₱{facility.price} {facility.price_unit}

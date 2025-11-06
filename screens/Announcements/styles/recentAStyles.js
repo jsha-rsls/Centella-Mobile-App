@@ -123,15 +123,6 @@ export const styles = StyleSheet.create({
   
   itemHeader: {
     flex: 1,
-    paddingRight: 44, // Space between title and badge
-  },
-  
-  // Badge positioned in top-right corner
-  badgeContainer: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    zIndex: 1,
   },
   
   // Enhanced badge system
@@ -139,7 +130,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    marginTop: 1,
     position: 'relative',
     overflow: 'visible',
     shadowOffset: { width: 0, height: 1 },
@@ -180,7 +170,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    marginTop: 1,
     position: 'relative',
     overflow: 'visible',
     shadowColor: "#F59E0B",
@@ -231,6 +220,7 @@ export const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     marginRight: 8,
+    gap: 8, // Gap between badge and time
   },
 
   clockIcon: {

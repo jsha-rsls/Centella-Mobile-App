@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Text, View, Linking, Alert } from 'react-native';
 
 // HTML sanitization for React Native (DOMPurify alternative)
 const sanitizeHTML = (htmlString) => {
@@ -41,11 +41,105 @@ const ALLOWED_TAGS = {
   'ul': true,
   'ol': true,
   'li': true,
-  'span': true
+  'span': true,
+  'h1': true,
+  'h2': true,
+  'h3': true,
+  'h4': true,
+  'h5': true,
+  'h6': true,
+  'a': true,
+  'blockquote': true,
+  'pre': true,
+  'code': true,
+  'table': true,
+  'tr': true,
+  'td': true,
+  'th': true
 };
 
-// Simple HTML parser for React Native with security
-const HTMLRenderer = ({ html, style, numberOfLines }) => {
+// Extract style attributes from HTML tag
+const extractStyleAttributes = (tagString) => {
+  const styles = {};
+  
+  // Extract color
+  const colorMatch = tagString.match(/color\s*[=:]\s*["']?([^"'\s>]+)["']?/i);
+  if (colorMatch) {
+    const color = colorMatch[1];
+    if (/^#[0-9A-Fa-f]{3,6}$/.test(color) || /^rgb\(/.test(color) || /^[a-zA-Z]+$/.test(color)) {
+      styles.color = color;
+    }
+  }
+  
+  // Extract background-color
+  const bgColorMatch = tagString.match(/background-color\s*:\s*["']?([^"';]+)["']?/i);
+  if (bgColorMatch) {
+    const bgColor = bgColorMatch[1].trim();
+    if (/^#[0-9A-Fa-f]{3,6}$/.test(bgColor) || /^rgb\(/.test(bgColor)) {
+      styles.backgroundColor = bgColor;
+    }
+  }
+  
+  // Extract font-size
+  const fontSizeMatch = tagString.match(/font-size\s*:\s*["']?(\d+(?:px|em|rem|%|pt))["']?/i);
+  if (fontSizeMatch) {
+    const size = fontSizeMatch[1];
+    // Convert to pixels for React Native
+    if (size.endsWith('px')) {
+      styles.fontSize = parseInt(size);
+    } else if (size.endsWith('pt')) {
+      styles.fontSize = parseInt(size) * 1.33; // Approximate pt to px conversion
+    } else if (size.endsWith('em') || size.endsWith('rem')) {
+      styles.fontSize = parseInt(size) * 16; // Assuming base 16px
+    }
+  }
+  
+  // Extract font-weight
+  const fontWeightMatch = tagString.match(/font-weight\s*:\s*["']?(bold|normal|\d{3})["']?/i);
+  if (fontWeightMatch) {
+    const weight = fontWeightMatch[1];
+    if (weight === 'bold' || parseInt(weight) >= 600) {
+      styles.fontWeight = 'bold';
+    }
+  }
+  
+  // Extract text-align
+  const textAlignMatch = tagString.match(/text-align\s*:\s*["']?(left|right|center|justify)["']?/i);
+  if (textAlignMatch) {
+    styles.textAlign = textAlignMatch[1];
+  }
+  
+  // Extract text-decoration
+  const textDecoMatch = tagString.match(/text-decoration\s*:\s*["']?(underline|line-through|none)["']?/i);
+  if (textDecoMatch) {
+    const deco = textDecoMatch[1];
+    if (deco === 'underline') {
+      styles.textDecorationLine = 'underline';
+    } else if (deco === 'line-through') {
+      styles.textDecorationLine = 'line-through';
+    }
+  }
+  
+  // Extract font-style
+  const fontStyleMatch = tagString.match(/font-style\s*:\s*["']?(italic|oblique|normal)["']?/i);
+  if (fontStyleMatch) {
+    const style = fontStyleMatch[1];
+    if (style === 'italic' || style === 'oblique') {
+      styles.fontStyle = 'italic';
+    }
+  }
+  
+  return styles;
+};
+
+// Extract href from anchor tag
+const extractHref = (tagString) => {
+  const hrefMatch = tagString.match(/href\s*=\s*["']([^"']+)["']/i);
+  return hrefMatch ? hrefMatch[1] : null;
+};
+
+// Simple HTML parser for React Native with security and better formatting
+const HTMLRenderer = ({ html, style, numberOfLines, onLinkPress, selectable }) => {
   if (!html) return null;
 
   // Clean and sanitize HTML
@@ -58,7 +152,9 @@ const HTMLRenderer = ({ html, style, numberOfLines }) => {
     
     const elements = [];
     let key = 0;
-    let currentStyles = {};
+    const styleStack = [{}]; // Stack to manage nested styles
+    let listLevel = 0;
+    let currentLink = null;
     
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
@@ -72,94 +168,170 @@ const HTMLRenderer = ({ html, style, numberOfLines }) => {
         const tagName = tagMatch[1].toLowerCase();
         
         // Only process allowed tags
-        if (!ALLOWED_TAGS[tagName] && tagName !== 'font') continue;
+        if (!ALLOWED_TAGS[tagName]) continue;
         
-        // Handle font size tags
-        if (tagName === 'font') {
-          if (!isClosing) {
-            const sizeMatch = part.match(/size\s*=\s*["']?(\d+)["']?/i);
-            if (sizeMatch) {
-              const size = parseInt(sizeMatch[1]);
-              // Convert HTML font size to React Native fontSize
-              const fontSizeMap = {
-                1: 12,  // Small
-                2: 14,  // Normal
-                3: 16,  // Medium  
-                4: 18,  // Large
-                5: 20,  // X-Large
-                6: 24,  // XX-Large
-                7: 28   // XXX-Large
-              };
-              currentStyles.fontSize = fontSizeMap[size] || 14;
-            }
-            
-            // Handle color attribute
-            const colorMatch = part.match(/color\s*=\s*["']?([^"'\s>]+)["']?/i);
-            if (colorMatch) {
-              const color = colorMatch[1];
-              // Basic color validation (allow hex colors and named colors)
-              if (/^#[0-9A-Fa-f]{3,6}$/.test(color) || /^[a-zA-Z]+$/.test(color)) {
-                currentStyles.color = color;
+        if (!isClosing) {
+          // Opening tag - push new style to stack
+          const newStyles = { ...styleStack[styleStack.length - 1] };
+          
+          // Extract inline styles
+          const inlineStyles = extractStyleAttributes(part);
+          Object.assign(newStyles, inlineStyles);
+          
+          // Handle specific tags
+          switch (tagName) {
+            case 'font':
+              const sizeMatch = part.match(/size\s*=\s*["']?(\d+)["']?/i);
+              if (sizeMatch) {
+                const size = parseInt(sizeMatch[1]);
+                const fontSizeMap = { 1: 10, 2: 13, 3: 16, 4: 18, 5: 24, 6: 32, 7: 48 };
+                newStyles.fontSize = fontSizeMap[size] || 16;
               }
-            }
-          } else {
-            delete currentStyles.fontSize;
-            delete currentStyles.color;
-          }
-        }
-        // Handle other formatting tags
-        else if (tagName === 'b' || tagName === 'strong') {
-          if (!isClosing) {
-            currentStyles.fontWeight = 'bold';
-          } else {
-            delete currentStyles.fontWeight;
-          }
-        }
-        else if (tagName === 'i' || tagName === 'em') {
-          if (!isClosing) {
-            currentStyles.fontStyle = 'italic';
-          } else {
-            delete currentStyles.fontStyle;
-          }
-        }
-        else if (tagName === 'u') {
-          if (!isClosing) {
-            currentStyles.textDecorationLine = 'underline';
-          } else {
-            delete currentStyles.textDecorationLine;
-          }
-        }
-        // Handle line breaks
-        else if (tagName === 'br') {
-          elements.push(<Text key={key++}>{'\n'}</Text>);
-        }
-        // Handle lists
-        else if (tagName === 'ul' || tagName === 'ol') {
-          if (!isClosing) {
-            elements.push(<Text key={key++}>{'\n'}</Text>);
-          }
-        }
-        else if (tagName === 'li') {
-          if (!isClosing) {
-            elements.push(<Text key={key++}>• </Text>);
-          } else {
-            elements.push(<Text key={key++}>{'\n'}</Text>);
-          }
-        }
-        // Handle paragraphs
-        else if (tagName === 'p') {
-          if (!isClosing) {
-            if (elements.length > 0) {
+              const colorMatch = part.match(/color\s*=\s*["']?([^"'\s>]+)["']?/i);
+              if (colorMatch && /^#[0-9A-Fa-f]{3,6}$/.test(colorMatch[1])) {
+                newStyles.color = colorMatch[1];
+              }
+              break;
+              
+            case 'b':
+            case 'strong':
+              newStyles.fontWeight = 'bold';
+              break;
+              
+            case 'i':
+            case 'em':
+              newStyles.fontStyle = 'italic';
+              break;
+              
+            case 'u':
+              newStyles.textDecorationLine = 'underline';
+              break;
+              
+            case 'h1':
+              newStyles.fontSize = 32;
+              newStyles.fontWeight = 'bold';
+              newStyles.marginVertical = 8;
+              break;
+              
+            case 'h2':
+              newStyles.fontSize = 28;
+              newStyles.fontWeight = 'bold';
+              newStyles.marginVertical = 7;
+              break;
+              
+            case 'h3':
+              newStyles.fontSize = 24;
+              newStyles.fontWeight = 'bold';
+              newStyles.marginVertical = 6;
+              break;
+              
+            case 'h4':
+              newStyles.fontSize = 20;
+              newStyles.fontWeight = 'bold';
+              newStyles.marginVertical = 5;
+              break;
+              
+            case 'h5':
+              newStyles.fontSize = 18;
+              newStyles.fontWeight = 'bold';
+              newStyles.marginVertical = 4;
+              break;
+              
+            case 'h6':
+              newStyles.fontSize = 16;
+              newStyles.fontWeight = 'bold';
+              newStyles.marginVertical = 3;
+              break;
+              
+            case 'blockquote':
+              newStyles.paddingLeft = 10;
+              newStyles.borderLeftWidth = 3;
+              newStyles.borderLeftColor = '#ccc';
+              newStyles.fontStyle = 'italic';
+              break;
+              
+            case 'code':
+            case 'pre':
+              newStyles.fontFamily = 'monospace';
+              newStyles.backgroundColor = '#f5f5f5';
+              newStyles.padding = 4;
+              break;
+              
+            case 'a':
+              const href = extractHref(part);
+              if (href) {
+                currentLink = href;
+                newStyles.color = '#0066cc';
+                newStyles.textDecorationLine = 'underline';
+              }
+              break;
+              
+            case 'br':
               elements.push(<Text key={key++}>{'\n'}</Text>);
-            }
-          } else {
-            elements.push(<Text key={key++}>{'\n'}</Text>);
+              continue;
+              
+            case 'ul':
+            case 'ol':
+              listLevel++;
+              if (elements.length > 0) {
+                elements.push(<Text key={key++}>{'\n'}</Text>);
+              }
+              styleStack.push(newStyles);
+              continue;
+              
+            case 'li':
+              const indent = '  '.repeat(listLevel - 1);
+              elements.push(<Text key={key++}>{indent}• </Text>);
+              break;
+              
+            case 'p':
+              if (elements.length > 0) {
+                elements.push(<Text key={key++}>{'\n\n'}</Text>);
+              }
+              break;
+              
+            case 'div':
+              if (elements.length > 0) {
+                elements.push(<Text key={key++}>{'\n'}</Text>);
+              }
+              break;
           }
-        }
-        // Handle divs
-        else if (tagName === 'div') {
-          if (!isClosing && elements.length > 0) {
-            elements.push(<Text key={key++}>{'\n'}</Text>);
+          
+          styleStack.push(newStyles);
+          
+        } else {
+          // Closing tag - pop style from stack
+          if (styleStack.length > 1) {
+            styleStack.pop();
+          }
+          
+          switch (tagName) {
+            case 'ul':
+            case 'ol':
+              listLevel--;
+              elements.push(<Text key={key++}>{'\n'}</Text>);
+              break;
+              
+            case 'li':
+              elements.push(<Text key={key++}>{'\n'}</Text>);
+              break;
+              
+            case 'p':
+              elements.push(<Text key={key++}>{'\n'}</Text>);
+              break;
+              
+            case 'a':
+              currentLink = null;
+              break;
+              
+            case 'h1':
+            case 'h2':
+            case 'h3':
+            case 'h4':
+            case 'h5':
+            case 'h6':
+              elements.push(<Text key={key++}>{'\n'}</Text>);
+              break;
           }
         }
       } else {
@@ -174,11 +346,25 @@ const HTMLRenderer = ({ html, style, numberOfLines }) => {
             .replace(/&#39;/g, "'")
             .replace(/&nbsp;/g, ' ');
           
-          elements.push(
-            <Text key={key++} style={[style, currentStyles]}>
-              {decodedText}
-            </Text>
-          );
+          const currentStyles = styleStack[styleStack.length - 1];
+          
+          if (currentLink && onLinkPress) {
+            elements.push(
+              <Text
+                key={key++}
+                style={[style, currentStyles]}
+                onPress={() => onLinkPress(currentLink, decodedText)}
+              >
+                {decodedText}
+              </Text>
+            );
+          } else {
+            elements.push(
+              <Text key={key++} style={[style, currentStyles]}>
+                {decodedText}
+              </Text>
+            );
+          }
         }
       }
     }
@@ -190,8 +376,9 @@ const HTMLRenderer = ({ html, style, numberOfLines }) => {
   const stripHTML = (htmlString) => {
     return htmlString
       .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/p>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
       .replace(/<\/div>/gi, '\n')
+      .replace(/<\/h[1-6]>/gi, '\n')
       .replace(/<li>/gi, '• ')
       .replace(/<\/li>/gi, '\n')
       .replace(/<[^>]+>/g, '')
@@ -208,7 +395,7 @@ const HTMLRenderer = ({ html, style, numberOfLines }) => {
   if (numberOfLines) {
     const plainText = stripHTML(cleanHTML);
     return (
-      <Text style={style} numberOfLines={numberOfLines}>
+      <Text style={style} numberOfLines={numberOfLines} selectable={selectable}>
         {plainText}
       </Text>
     );
@@ -218,7 +405,7 @@ const HTMLRenderer = ({ html, style, numberOfLines }) => {
   const elements = parseHTML(cleanHTML);
   
   return (
-    <Text style={style}>
+    <Text style={style} selectable={selectable}>
       {elements}
     </Text>
   );

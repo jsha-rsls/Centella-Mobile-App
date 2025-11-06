@@ -75,6 +75,19 @@ export default function Calendar({
     return dateStr < today
   }
 
+  const isPastMonth = () => {
+    if (!currentMonth) return false
+    const today = new Date()
+    const currentYear = currentMonth.getFullYear()
+    const currentMonthNum = currentMonth.getMonth()
+    const todayYear = today.getFullYear()
+    const todayMonth = today.getMonth()
+    
+    // Check if current displayed month is the same as or before today's month
+    return currentYear < todayYear || 
+           (currentYear === todayYear && currentMonthNum <= todayMonth)
+  }
+
   const handleDatePress = (date) => {
     const now = Date.now()
     clickTimestampsRef.current = clickTimestampsRef.current.filter(
@@ -128,8 +141,12 @@ export default function Calendar({
       {/* Month Navigation */}
       <View style={styles.monthHeader}>
         <TouchableOpacity 
-          style={styles.monthNavButton} 
+          style={[
+            styles.monthNavButton,
+            isPastMonth() && { opacity: 0.3 }
+          ]} 
           onPress={() => onMonthChange("prev")}
+          disabled={isPastMonth()}
         >
           <Ionicons name="chevron-back" size={24} color="#374151" />
         </TouchableOpacity>

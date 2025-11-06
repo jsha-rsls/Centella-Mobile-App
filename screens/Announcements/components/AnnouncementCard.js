@@ -49,15 +49,6 @@ export default function AnnouncementCard({
               highlightQuery={searchQuery.trim()}
             />
           </View>
-          
-          {/* Badge positioned absolutely in top-right */}
-          <View style={styles.badgeContainer}>
-            <BadgeRenderer
-              announcement={announcement}
-              pulseAnim={badgeAnimations.getPulseAnim()}
-              recentBadgeAnim={badgeAnimations.getRecentBadgeAnim()}
-            />
-          </View>
         </View>
         
         {/* Render content with HTML formatting, truncation, and highlighting */}
@@ -70,6 +61,13 @@ export default function AnnouncementCard({
         
         <View style={styles.announcementFooter}>
           <View style={styles.dateContainer}>
+            {/* Badge beside time */}
+            <BadgeRenderer
+              announcement={announcement}
+              pulseAnim={badgeAnimations.getPulseAnim()}
+              recentBadgeAnim={badgeAnimations.getRecentBadgeAnim()}
+            />
+            
             {isVeryRecentAnnouncement(announcement.created_at) && (
               <Ionicons 
                 name="time-outline" 

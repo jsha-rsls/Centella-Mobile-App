@@ -61,9 +61,9 @@ export const styles = StyleSheet.create({
     marginBottom: 16,
     padding: 20,
     position: "relative",
-    // All shadow properties removed for clean transition
     borderWidth: 1,
     borderColor: "#dcdddeff", // Light border for subtle separation
+    borderTopColor: "#cda8c5ff",
   },
 
   cardPressed: {
@@ -78,15 +78,7 @@ export const styles = StyleSheet.create({
   },
 
   cardHeader: {
-    paddingRight: 60, // Space for badge
-  },
-
-  // Badge positioned in top-right corner
-  badgeContainer: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    zIndex: 1,
+    flex: 1,
   },
 
   // Card Content
@@ -94,9 +86,7 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     color: "#000",
-    marginBottom: 12,
     lineHeight: 22,
-    paddingRight: 4, // Clean separation from badge
   },
   
   announcementContent: {
@@ -116,6 +106,9 @@ export const styles = StyleSheet.create({
   dateContainer: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
+    marginRight: 8,
+    gap: 8, // Gap between badge and time
   },
 
   clockIcon: {
@@ -125,6 +118,7 @@ export const styles = StyleSheet.create({
   announcementDate: {
     fontSize: 13,
     color: "#999",
+    flexShrink: 1,
   },
 
   veryRecentDate: {
@@ -136,6 +130,7 @@ export const styles = StyleSheet.create({
   readMoreContainer: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 0,
   },
 
   readMore: {
